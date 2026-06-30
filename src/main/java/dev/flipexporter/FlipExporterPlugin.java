@@ -227,7 +227,7 @@ public class FlipExporterPlugin extends Plugin
 	}
 
 	/** Inventory items, with NOTED items folded onto their tradeable id (collected GE stock arrives
-	 *  noted; the flipper tracks tradeable ids). Also pulls out coins (995) + platinum (13204). */
+	 *  noted; analysis tools track tradeable ids). Also pulls out coins (995) + platinum (13204). */
 	private Map<String, Object> buildInventory()
 	{
 		Map<String, Object> result = new LinkedHashMap<>();
@@ -268,7 +268,7 @@ public class FlipExporterPlugin extends Plugin
 				int price = itemManager.getItemPrice(id);
 				Map<String, Object> it = new LinkedHashMap<>();
 				it.put("slot", slot);
-				it.put("id", id);              // tradeable (unnoted) id — match it against the journal
+				it.put("id", id);              // tradeable (unnoted) id — matches offers + history
 				it.put("noted", noted);
 				it.put("name", itemName(id));
 				it.put("qty", qty);

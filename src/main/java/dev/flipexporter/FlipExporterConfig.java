@@ -10,7 +10,7 @@ public interface FlipExporterConfig extends Config
 	@ConfigItem(
 			keyName = "exportIntervalTicks",
 			name = "Snapshot interval (ticks)",
-			description = "Game ticks between snapshot writes (1 tick = 0.6s). 5 = every 3s is plenty; the flipper only reads on command. The completed-trade history is written immediately on every fill regardless of this."
+			description = "Game ticks between snapshot writes (1 tick = 0.6s). 5 = every 3s is plenty for most readers. The completed-trade history is written immediately on every fill regardless of this."
 	)
 	default int exportIntervalTicks()
 	{
@@ -20,7 +20,7 @@ public interface FlipExporterConfig extends Config
 	@ConfigItem(
 			keyName = "exportBank",
 			name = "Export bank contents",
-			description = "Include your bank in the snapshot (only refreshes while the bank is open). Off by default — the flipper keeps stock in your bag, not the bank."
+			description = "Include your bank in the snapshot (only refreshes while the bank is open). Off by default — active flipping stock usually lives in your bag, not the bank."
 	)
 	default boolean exportBank()
 	{

@@ -1,30 +1,33 @@
 # Flip Exporter
 
-A RuneLite plugin that writes **one clean, canonical data source** for the [`osrs-flipper`](../osrs-flipper) tool — replacing the two third-party plugins it currently stitches together (Flipping Utilities + Local Data Exporter) and the whole class of bugs that came from them.
+A RuneLite plugin that exports flipping-relevant account data to local JSON, so you can build your
+own Grand Exchange analysis, spreadsheets, dashboards, or tooling. **Local files only — no network,
+no automation, no strategy.** It just gives you clean, canonical data; what you do with it is yours.
 
-## Why
+## Why another exporter
 
-Consuming two plugins not built for our needs caused recurring data bugs:
+It emits the things flipping tools actually need, correctly, in one place:
 
-| problem | fixed here by |
-|---|---|
-| GE-collected stock arrives **noted** (id = unnoted+1, not in the GE mapping) → invisible to the flipper | resolving noted→tradeable id **in-plugin** (`getLinkedNoteId()`); every item is emitted under its tradeable id + a `noted` flag |
-| offer price reported as `0` until it starts filling | real `listedPrice` (the price you set) always, even at 0% fill |
-| Flipping Utilities' slot state doesn't repopulate cleanly on relog; two sources disagree | one source, read straight from the client's GE offers |
-| no offer placement time; trade history scattered | per-slot `placedAt`, and a **persisted completed-trade log** for cost basis / audit |
-| reader catching a half-written file | atomic write (temp file + rename) |
-
-The Python brain stays in Python. This plugin only emits data.
+- **Noted items resolved** — items collected from the GE land in your bag *noted* (a different item
+  id that isn't the tradeable one). This plugin folds them back onto their tradeable id (via
+  `getLinkedNoteId`) and flags them, so collected stock matches your offers/history.
+- **Real offer prices** — the listed price you set on an offer, available even at 0% fill.
+- **Placement times** — a per-slot timestamp for when each offer was placed.
+- **Persisted trade history** — an append-only, deduped log of every completed/cancelled fill, the
+  basis for cost and realised P&L. Survives restarts.
+- **Cash on hand** — coins + platinum tokens, the deployable amount.
+- **Atomic writes** — a reader never catches a half-written file.
 
 ## Output
 
 Written to `~/.runelite/flip-exporter/`:
 
-- **`latest.json`** — snapshot every few ticks: cash (coins + platinum), noted-resolved inventory, live GE offers (real prices, qty, `placedAt`), optional bank.
-- **`history.json`** — append-only log of every completed/cancelled fill (item, buy/sell, qty, price, spent, timestamps). Survives restarts; the cost-basis + audit record.
-- **`state.json`** — internal per-slot dedup state (so a fill is logged exactly once, even across restarts).
+- **`latest.json`** — snapshot every few ticks: cash, inventory (noted-resolved), live GE offers,
+  optional bank.
+- **`history.json`** — persisted completed/cancelled trades.
+- **`state.json`** — internal per-slot dedup/placement state.
 
-### `latest.json` shape
+### `latest.json`
 ```jsonc
 {
   "exporter": "flip-exporter", "schema": 1, "timestamp": 0,
@@ -32,52 +35,33 @@ Written to `~/.runelite/flip-exporter/`:
   "coins": 532618, "platinum": 0, "cashOnHand": 532618,
   "inventory": { "loaded": true, "coins": 532618, "platinum": 0,
     "items": [ {"slot":0,"id":2114,"noted":true,"qty":1500,"name":"Pineapple","price":210,"value":315000} ] },
-  "offers": [ {"slot":0,"state":"BUYING","isBuy":true,"id":2114,"name":"Pineapple",
+  "offers": [ {"slot":0,"uuid":"...","state":"BUYING","isBuy":true,"id":2114,"name":"Pineapple",
     "listedPrice":202,"marketPrice":210,"total":1500,"completed":1500,"remaining":0,
     "spent":303000,"avgPrice":202,"placedAt":0} ]
 }
 ```
-`id` on inventory items is always the **tradeable** id (noted folded away), so it matches the journal directly.
+`id` on inventory items is always the **tradeable** id (noted folded away).
 
-### `history.json` shape
+### `history.json`
 ```jsonc
 { "exporter": "flip-exporter", "schema": 1, "trades": [
   {"uuid":"...","slot":0,"id":2114,"name":"Pineapple","isBuy":true,"qty":1500,
    "listedPrice":202,"spent":303000,"avgPrice":202,"state":"BOUGHT","placedAt":0,"completedAt":0} ] }
 ```
 
-## Build & run
-
-Requires a JDK (11+). The gradle wrapper is included.
-
-**Install into your normal RuneLite (recommended — daily use):** build the *thin* jar, sideload it, and
-run the client in **developer mode** (RuneLite only loads `sideloaded-plugins/` in developer mode).
-```sh
-./gradlew jar
-mkdir -p ~/.runelite/sideloaded-plugins
-cp build/libs/flip-exporter-0.1.0.jar ~/.runelite/sideloaded-plugins/
-# quit RuneLite, then launch it in developer mode (macOS):
-/Applications/RuneLite.app/Contents/MacOS/RuneLite --developer-mode
-```
-Enable **Flip Exporter** in the plugin list. (Use `flip-exporter-0.1.0.jar`, the ~12K thin jar — NOT the
-`-all.jar` fat jar, which bundles the client and conflicts.) Launched this way the client keeps the
-launcher's correct JVM args, so there's no module/JDK crash — that only happens with `./gradlew run`
-(from-source dev), which the run task now patches with the needed `--add-opens`.
-
-**Or dev-test in a from-source RuneLite:**
-```sh
-./gradlew run
-```
-On macOS + JDK 9+ this needs `--add-exports java.desktop/com.apple.eawt=ALL-UNNAMED` (RuneLite's Apple
-fullscreen adapter reaches an encapsulated JDK class) — the `run` task already passes it. Either way it
-writes `~/.runelite/flip-exporter/` once you log in.
-
-Unit test (noted-resolution logic): `./gradlew test`
-
 ## Config
-- **Snapshot interval (ticks)** — default 5 (≈3s). History is written immediately on every fill regardless.
-- **Export bank contents** — default off (the flipper keeps stock in your bag).
+- **Snapshot interval (ticks)** — default 5 (≈3s). History is written immediately on every fill.
+- **Export bank contents** — default off (only refreshes while the bank is open).
 - **Trade history size** — default 20,000 (oldest dropped past this).
 
-## Once it's running
-Point the flipper at this source (a follow-up change to `osrs-flipper`'s readers): drop the Flipping Utilities + Local Data Exporter dependencies and read `latest.json` + `history.json` here. Noted resolution, real prices, placement times, and trade history all come from one place.
+## Build (for development)
+```sh
+./gradlew test     # unit tests
+./gradlew run      # launch RuneLite (developer mode) with the plugin, for local testing
+```
+On macOS / JDK 9+ the `run` task already passes the `--add-opens`/`--add-exports` flags RuneLite's UI
+needs from source.
+
+## Privacy
+Writes only to local files under `~/.runelite/flip-exporter/`. No network connections. No game
+automation. It reads your own account state and writes it to your own disk.

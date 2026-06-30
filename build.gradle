@@ -36,12 +36,22 @@ tasks.withType(JavaCompile).configureEach {
 }
 
 // `./gradlew run` launches RuneLite (developer mode) with this plugin sideloaded for testing.
+// The --add-exports opens the Apple fullscreen class RuneLite's macOS UI needs on JDK 9+ (without it
+// you get "IllegalAccessError: ... com.apple.eawt ... not exported"). Harmless on other platforms.
 tasks.register('run', JavaExec) {
 	classpath = sourceSets.test.runtimeClasspath
 	mainClass = pluginMainClass
 
-	jvmArgs "-ea"
+	jvmArgs "-ea",
+			"--add-exports", "java.desktop/com.apple.eawt=ALL-UNNAMED",
+			"--add-opens", "java.desktop/com.apple.eawt=ALL-UNNAMED"
 	args "--developer-mode", "--debug"
+}
+
+// `./gradlew jar` builds a THIN plugin jar (just the plugin + manifest, no bundled client/deps) to
+// drop into ~/.runelite/sideloaded-plugins/ and load in your normal RuneLite. Use this for daily use.
+jar {
+	from('.') { include 'runelite-plugin.properties' }
 }
 
 // `./gradlew shadowJar` builds the sideloadable plugin jar (drop into ~/.runelite/sideloaded-plugins).

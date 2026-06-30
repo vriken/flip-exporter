@@ -50,23 +50,25 @@ Written to `~/.runelite/flip-exporter/`:
 
 Requires a JDK (11+). The gradle wrapper is included.
 
-**Test it (developer-mode RuneLite with the plugin loaded):**
+**Install into your normal RuneLite (recommended — daily use):** build the *thin* jar and sideload it.
+```sh
+./gradlew jar
+mkdir -p ~/.runelite/sideloaded-plugins
+cp build/libs/flip-exporter-0.1.0.jar ~/.runelite/sideloaded-plugins/
+```
+Restart RuneLite and enable **Flip Exporter**. (Use `flip-exporter-0.1.0.jar`, the ~12K thin jar — NOT
+the `-all.jar` fat jar, which bundles the client and conflicts.) Your normal client already passes the
+right JVM args, so there's no module/JDK issue.
+
+**Or dev-test in a from-source RuneLite:**
 ```sh
 ./gradlew run
 ```
-This launches a RuneLite instance with Flip Exporter active; log in and it starts writing `~/.runelite/flip-exporter/`.
+On macOS + JDK 9+ this needs `--add-exports java.desktop/com.apple.eawt=ALL-UNNAMED` (RuneLite's Apple
+fullscreen adapter reaches an encapsulated JDK class) — the `run` task already passes it. Either way it
+writes `~/.runelite/flip-exporter/` once you log in.
 
-**Install it into your normal RuneLite (daily use):**
-```sh
-./gradlew shadowJar
-cp build/libs/flip-exporter-0.1.0-all.jar ~/.runelite/sideloaded-plugins/
-```
-Restart RuneLite; enable **Flip Exporter** in the plugin list. (Create `~/.runelite/sideloaded-plugins/` if it doesn't exist.)
-
-Run the unit test (noted-resolution logic):
-```sh
-./gradlew test
-```
+Unit test (noted-resolution logic): `./gradlew test`
 
 ## Config
 - **Snapshot interval (ticks)** — default 5 (≈3s). History is written immediately on every fill regardless.

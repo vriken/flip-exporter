@@ -306,6 +306,7 @@ public class FlipExporterPlugin extends Plugin
 			SlotState s = slots.get(slot);
 			Map<String, Object> o = new LinkedHashMap<>();
 			o.put("slot", slot);
+			o.put("uuid", s != null ? s.uuid : null);   // same id this offer carries into history.json
 			o.put("state", state.name());
 			o.put("isBuy", state.name().contains("BUY") || state == GrandExchangeOfferState.BOUGHT);
 			o.put("id", itemId);

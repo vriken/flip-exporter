@@ -50,15 +50,19 @@ Written to `~/.runelite/flip-exporter/`:
 
 Requires a JDK (11+). The gradle wrapper is included.
 
-**Install into your normal RuneLite (recommended — daily use):** build the *thin* jar and sideload it.
+**Install into your normal RuneLite (recommended — daily use):** build the *thin* jar, sideload it, and
+run the client in **developer mode** (RuneLite only loads `sideloaded-plugins/` in developer mode).
 ```sh
 ./gradlew jar
 mkdir -p ~/.runelite/sideloaded-plugins
 cp build/libs/flip-exporter-0.1.0.jar ~/.runelite/sideloaded-plugins/
+# quit RuneLite, then launch it in developer mode (macOS):
+/Applications/RuneLite.app/Contents/MacOS/RuneLite --developer-mode
 ```
-Restart RuneLite and enable **Flip Exporter**. (Use `flip-exporter-0.1.0.jar`, the ~12K thin jar — NOT
-the `-all.jar` fat jar, which bundles the client and conflicts.) Your normal client already passes the
-right JVM args, so there's no module/JDK issue.
+Enable **Flip Exporter** in the plugin list. (Use `flip-exporter-0.1.0.jar`, the ~12K thin jar — NOT the
+`-all.jar` fat jar, which bundles the client and conflicts.) Launched this way the client keeps the
+launcher's correct JVM args, so there's no module/JDK crash — that only happens with `./gradlew run`
+(from-source dev), which the run task now patches with the needed `--add-opens`.
 
 **Or dev-test in a from-source RuneLite:**
 ```sh

@@ -49,7 +49,7 @@ public class FlipExporterPlugin extends Plugin
 {
 	static final String EXPORTER = "flip-exporter";
 	static final int SCHEMA = 1;
-	static final String VERSION = "0.1.0";
+	static final String VERSION = "0.2.0";
 	private static final int LOGIN_SETTLE_TICKS = 4;
 	private static final int COINS_ID = 995;
 	private static final int PLATINUM_ID = 13204;
@@ -140,11 +140,15 @@ public class FlipExporterPlugin extends Plugin
 		SlotState s = slots.get(slot);
 		if (s == null || s.itemId != itemId)
 		{
-			// a fresh offer instance in this slot — give it a stable id + placement time
+			// a fresh offer instance in this slot — give it a stable id + placement time. We can only
+			// trust placedAt as a real placement time if we witnessed the placement live: past the
+			// login-settle window (not a login re-sync of an already-open offer) and with nothing yet
+			// bought/sold (an already-progressed offer was placed before we first saw it).
 			s = new SlotState();
 			s.uuid = UUID.randomUUID().toString();
 			s.itemId = itemId;
 			s.placedAt = now;
+			s.placementObserved = ticksLoggedIn >= LOGIN_SETTLE_TICKS && offer.getQuantitySold() == 0;
 			s.recorded = false;
 			slots.put(slot, s);
 		}
@@ -319,6 +323,9 @@ public class FlipExporterPlugin extends Plugin
 			o.put("spent", spent);
 			o.put("avgPrice", completed > 0 ? Math.round(spent / (double) completed) : offer.getPrice());
 			o.put("placedAt", s != null ? s.placedAt : 0L);
+			// true only if we actually witnessed this offer being placed (not a login re-sync of an
+			// already-open offer) — so consumers know whether placedAt is a real placement time.
+			o.put("placementObserved", s != null && s.placementObserved);
 			out.add(o);
 		}
 		return out;
@@ -490,6 +497,7 @@ public class FlipExporterPlugin extends Plugin
 		String uuid;
 		int itemId;
 		long placedAt;
+		boolean placementObserved;   // did we witness the placement (placedAt is real) vs first-saw-open?
 		boolean recorded;
 	}
 }

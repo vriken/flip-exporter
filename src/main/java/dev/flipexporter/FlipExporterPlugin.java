@@ -49,7 +49,7 @@ public class FlipExporterPlugin extends Plugin
 {
 	static final String EXPORTER = "flip-exporter";
 	static final int SCHEMA = 1;
-	static final String VERSION = "0.2.0";
+	static final String VERSION = "0.2.1";
 	private static final int LOGIN_SETTLE_TICKS = 4;
 	private static final int COINS_ID = 995;
 	private static final int PLATINUM_ID = 13204;
@@ -161,7 +161,7 @@ public class FlipExporterPlugin extends Plugin
 		if (terminal && sold > 0 && !s.recorded)
 		{
 			boolean isBuy = state == GrandExchangeOfferState.BOUGHT || state == GrandExchangeOfferState.CANCELLED_BUY;
-			int spent = offer.getSpent();
+			long spent = offer.getSpent();
 			Map<String, Object> trade = new LinkedHashMap<>();
 			trade.put("uuid", s.uuid);
 			trade.put("slot", slot);
@@ -269,7 +269,7 @@ public class FlipExporterPlugin extends Plugin
 				ItemComposition comp = itemManager.getItemComposition(rawId);
 				int id = canonicalId(rawId, comp.getNote(), comp.getLinkedNoteId());
 				boolean noted = comp.getNote() != -1;
-				int price = itemManager.getItemPrice(id);
+				long price = itemManager.getItemPrice(id);
 				Map<String, Object> it = new LinkedHashMap<>();
 				it.put("slot", slot);
 				it.put("id", id);              // tradeable (unnoted) id — matches offers + history
@@ -306,7 +306,7 @@ public class FlipExporterPlugin extends Plugin
 			int itemId = offer.getItemId();
 			int total = offer.getTotalQuantity();
 			int completed = offer.getQuantitySold();
-			int spent = offer.getSpent();
+			long spent = offer.getSpent();
 			SlotState s = slots.get(slot);
 			Map<String, Object> o = new LinkedHashMap<>();
 			o.put("slot", slot);
